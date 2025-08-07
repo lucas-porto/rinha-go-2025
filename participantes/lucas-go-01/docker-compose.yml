@@ -1,0 +1,147 @@
+# Docker Compose para Rinha de Backend 2025
+# Limites: 1.5 CPU + 350MB RAM
+
+networks:
+  rinha-network:
+    driver: bridge
+  payment-processor:
+    external: true
+
+x-postgres-config: &postgres-config
+  image: postgres:15-alpine
+  environment:
+    POSTGRES_DB: rinha
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: root
+  volumes:
+    - postgres_data:/var/lib/postgresql/data
+    - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+  command: >
+    postgres
+    -c fsync=off
+    -c synchronous_commit=off
+    -c full_page_writes=off
+    -c logging_collector=off
+    -c log_statement=none
+    -c max_connections=200
+    -c shared_buffers=64MB
+    -c effective_cache_size=256MB
+    -c maintenance_work_mem=16MB
+    -c checkpoint_completion_target=0.9
+    -c wal_buffers=16MB
+    -c default_statistics_target=100
+    -c random_page_cost=1.1
+    -c effective_io_concurrency=200
+    -c work_mem=4MB
+    -c min_wal_size=1GB
+    -c max_wal_size=4GB
+  deploy:
+    resources:
+      limits:
+        cpus: "0.3"
+        memory: "100MB"
+      reservations:
+        cpus: "0.1"
+        memory: "50MB"
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U postgres -d rinha"]
+    interval: 5s
+    timeout: 5s
+    retries: 5
+
+x-common-environment: &common-environment
+  DATABASE_URL: postgres://postgres:root@postgres:5432/rinha
+  API_PORT: 8080
+  DEFAULT_PROCESSOR_URL: http://payment-processor-default:8080
+  FALLBACK_PROCESSOR_URL: http://payment-processor-fallback:8080
+
+x-api-config: &api-config
+  image: lucasportos/rinha-go-2025:latest
+  depends_on:
+    postgres:
+      condition: service_healthy
+  environment:
+    <<: *common-environment
+  networks:
+    - rinha-network
+    - payment-processor
+  deploy:
+    resources:
+      limits:
+        cpus: "0.4"
+        memory: "100MB"
+      reservations:
+        cpus: "0.2"
+        memory: "50MB"
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthcheck"]
+    interval: 10s
+    timeout: 5s
+    retries: 3
+  volumes:
+    - /var/run:/var/run
+  user: "0:0"
+
+
+services:
+  postgres:
+    <<: *postgres-config
+    container_name: rinha-postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - rinha-network
+
+  api-1:
+    <<: *api-config
+    container_name: rinha-api-1
+    ports:
+      - "8080:8080"
+      - "9999:8080"
+    environment:
+      <<: *common-environment
+      SOCKET_NAME: api_1.sock
+
+
+  api-2:
+    <<: *api-config
+    container_name: rinha-api-2
+    ports:
+      - "8081:8080"
+    environment:
+      <<: *common-environment
+      SOCKET_NAME: api_2.sock
+
+
+
+  nginx:
+    image: nginx:alpine
+    container_name: rinha-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.config:/etc/nginx/nginx.conf
+      - /var/run:/var/run
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: "50MB"
+        reservations:
+          cpus: "0.05"
+          memory: "25MB"
+    depends_on:
+      - api-1
+      - api-2
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - rinha-network
+
+volumes:
+  postgres_data: 

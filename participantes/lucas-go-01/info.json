@@ -1,0 +1,10 @@
+{
+    "name": "Lucas",
+    "social": ["https://www.linkedin.com/in/lucasportossoares/", "https://www.lucasporto.cc/"],
+    "source-code-repo": "https://github.com/lucas/rinha-go-2025",
+    "langs": ["go"],
+    "storages": ["postgresql"],
+    "messaging": [],
+    "load-balancers": ["nginx"],
+    "other-technologies": ["fasthttp", "connection-pooling", "batch-operations", "unix-sockets"]
+}
