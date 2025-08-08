@@ -26,12 +26,12 @@ var (
 
 func GetProcessor() *Processor {
 	once.Do(func() {
-		defaultURL := os.Getenv("DEFAULT_PROCESSOR_URL")
+		defaultURL := os.Getenv("PROCESSOR_DEFAULT_URL")
 		if defaultURL == "" {
 			defaultURL = "http://payment-processor-default:8080"
 		}
 
-		fallbackURL := os.Getenv("FALLBACK_PROCESSOR_URL")
+		fallbackURL := os.Getenv("PROCESSOR_FALLBACK_URL")
 		if fallbackURL == "" {
 			fallbackURL = "http://payment-processor-fallback:8080"
 		}

@@ -1,7 +1,7 @@
 {
     "name": "Lucas",
     "social": ["https://www.linkedin.com/in/lucasportossoares/", "https://www.lucasporto.cc/"],
-    "source-code-repo": "https://github.com/lucas/rinha-go-2025",
+    "source-code-repo": "https://github.com/lucas-porto/rinha-go-2025",
     "langs": ["go"],
     "storages": ["postgresql"],
     "messaging": [],
