@@ -33,6 +33,7 @@ func HandlePurgePayments(ctx *fasthttp.RequestCtx) {
 		ctx.Error("Database error", fasthttp.StatusInternalServerError)
 		return
 	}
+
 	ctx.SetStatusCode(fasthttp.StatusOK)
 }
 
@@ -46,6 +47,7 @@ func HandleSummary(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	// Usar banco de dados diretamente
 	summary, err := database.GetPaymentsSummary(from, to)
 	if err != nil {
 		ctx.Error("Database error", fasthttp.StatusInternalServerError)

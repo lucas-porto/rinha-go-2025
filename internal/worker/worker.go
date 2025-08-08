@@ -15,8 +15,8 @@ type Worker struct {
 
 func New() *Worker {
 	return &Worker{
-		paymentQueue: make(chan models.PaymentJob, 100000), // Buffer de 100k
-		workerPool:   make(chan struct{}, 500),             // 500 workers
+		paymentQueue: make(chan models.PaymentJob, 200000), // Buffer de 200k
+		workerPool:   make(chan struct{}, 1000),            // 1000 workers
 	}
 }
 
@@ -26,10 +26,10 @@ func (w *Worker) Start() error {
 }
 
 func (w *Worker) startWorkerPool() {
-	for i := 0; i < 500; i++ {
+	for i := 0; i < 1000; i++ {
 		go w.worker()
 	}
-	// fmt.Println("Worker pool iniciado com 500 workers")
+	// fmt.Println("Worker pool iniciado com 1000 workers")
 }
 
 func (w *Worker) worker() {
@@ -64,7 +64,9 @@ func (w *Worker) EnqueuePayment(payment models.Payment) error {
 func (w *Worker) processPayment(payment models.Payment) error {
 	// Usar o processor real
 	proc := processor.GetProcessor()
-	return proc.ProcessPayment(payment)
+	_, err := proc.ProcessPayment(payment)
+
+	return err
 }
 
 func (w *Worker) TestDatabaseConnection() error {

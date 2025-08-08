@@ -1,49 +1,73 @@
-# Rinha de Backend 2025 - Go Ultra-Otimizado
+# Rinha de Backend 2025 - Go
 
-Sistema de pagamentos de alta performance para a Rinha de Backend 2025, implementado em Go com otimizações extremas para máxima velocidade e confiabilidade. **P99 reduzido em 89.8% e inconsistências em 99.2%!**
+Sistema de pagamentos de alta performance para a Rinha de Backend 2025, implementado em Go com arquitetura otimizada para velocidade e confiabilidade.
 
-## **🏆 Resultados de Performance**
+## Arquitetura
 
-### **Métricas Finais**
-- **P99**: 38.13ms (redução de 89.8%!)
-- **Inconsistências**: R$ 1.930 (redução de 99.2%!)
-- **Total Líquido**: R$ 151.557 (melhor resultado)
-- **Throughput**: 15.194 req/s (+8.2%)
-- **Lag**: 2.621 (mínimo)
+### Componentes Principais
 
-### **Evolução dos Resultados**
-| **Métrica** | **Inicial** | **Otimização 1** | **Otimização 2** | **Melhoria Total** |
-|-------------|-------------|------------------|------------------|-------------------|
-| **P99** | 375.75ms | 407.92ms | **38.13ms** | **89.8% redução!** 🚀 |
-| **Inconsistências** | R$ 232.193 | R$ 955 | R$ 1.930 | **99.2% redução!** 🚀 |
-| **Total Líquido** | R$ 141.898 | R$ 136.881 | **R$ 151.557** | **+6.8%** ⬆️ |
+- **API** (2 instâncias): Servidor HTTP usando FastHTTP
+- **Worker Separado**: Container dedicado para processamento de pagamentos
+- **HAProxy**: Load balancer para distribuição de carga
+- **PostgreSQL**: Banco de dados otimizado para performance
+- **Connection Pooling**: Clientes HTTP otimizados com reutilização de conexões
 
-## **🚀 Arquitetura Ultra-Otimizada**
+### Tecnologias Utilizadas
 
-### **Componentes**
-- **API** (2 instâncias): FastHTTP + Unix Sockets + Worker Integrado
-- **Worker Integrado**: Pool de 500 goroutines + Channel-based queuing
-- **PostgreSQL**: Otimizado com batch operations
-- **Nginx**: Load balancer com Unix Sockets
-- **Connection Pooling**: HTTP clients otimizados
-
-### **Tecnologias**
-- **Go 1.21** com FastHTTP
-- **PostgreSQL 15** com batch operations
-- **Docker & Docker Compose**
-- **Unix Sockets** para comunicação local
+- **Go 1.21** com FastHTTP para alta performance
+- **HAProxy 2.8** para load balancing inteligente
+- **PostgreSQL 15** com otimizações de performance
+- **Docker & Docker Compose** para containerização
 - **Connection Pooling** para HTTP clients
 - **Retry Logic** com backoff exponencial
 
-## **⚡ Otimizações Implementadas**
+## Otimizações Implementadas
 
-### **1. Connection Pooling (Principal Otimização)**
+### 1. HAProxy Load Balancer
+
+Configuração otimizada com balanceamento `leastconn` e health checks:
+
+```haproxy
+backend api_backend
+    mode http
+    balance leastconn
+    option httpchk GET /healthcheck
+    http-check expect status 204
+    http-reuse aggressive
+    
+    default-server check inter 2s rise 2 fall 3 maxconn 1000
+    server api-1 api-1:8080 check
+    server api-2 api-2:8080 check
+```
+
+### 2. Worker Separado
+
+Container dedicado para processamento isolado de pagamentos:
+
+```yaml
+worker:
+  build:
+    context: ..
+    dockerfile: build/Dockerfile
+    args:
+      TARGET: worker
+  deploy:
+    resources:
+      limits:
+        cpus: "0.3"
+        memory: "80MB"
+```
+
+### 3. Connection Pooling Otimizado
+
+Configuração de clientes HTTP com pools de conexão:
+
 ```go
 // Default Processor
 defaultClient: &fasthttp.Client{
     ReadTimeout:         300 * time.Millisecond,
     WriteTimeout:        300 * time.Millisecond,
-    MaxConnsPerHost:     1000, // Pool de conexões
+    MaxConnsPerHost:     1000,
     MaxIdleConnDuration: 10 * time.Second,
 }
 
@@ -51,12 +75,15 @@ defaultClient: &fasthttp.Client{
 fallbackClient: &fasthttp.Client{
     ReadTimeout:         3 * time.Second,
     WriteTimeout:        3 * time.Second,
-    MaxConnsPerHost:     100, // Pool menor
+    MaxConnsPerHost:     100,
     MaxIdleConnDuration: 10 * time.Second,
 }
 ```
 
-### **2. Retry Logic com Backoff Exponencial**
+### 4. Retry Logic com Backoff Exponencial
+
+Sistema de retry inteligente para processadores de pagamento:
+
 ```go
 maxRetries := 2
 baseDelay := 10 * time.Millisecond
@@ -66,25 +93,36 @@ delay := baseDelay * time.Duration(1<<attempt)
 time.Sleep(delay)
 ```
 
-### **3. Worker Integrado**
-- **Pool Size**: 500 goroutines
-- **Queue Buffer**: 100.000 items
-- **Channel-based**: Comunicação in-memory
-- **Sem Unix Sockets**: Eliminado overhead
+### 5. Worker Pool Otimizado
 
-### **4. Batch Database Operations**
+- Pool de 1000 goroutines para processamento paralelo
+- Buffer de 200.000 items na fila
+- Comunicação baseada em channels
+- Container separado para isolamento de recursos
+
+### 6. Batch Database Operations
+
+Operações em lote para reduzir I/O do banco:
+
 ```go
-batchSize := 10 // Otimizado
-flushInterval := 10 * time.Millisecond
-retries := 1 // Reduzido para performance
+batchSize := 5
+flushInterval := 5 * time.Millisecond
+retries := 1
 ```
 
-### **5. Timestamp Correto**
-- **RequestedAt**: Capturado no momento da solicitação
-- **Não processamento**: Evita inconsistências
-- **Timezone**: UTC para consistência
+### 7. Timestamp Correto
 
-### **6. PostgreSQL Otimizado**
+Captura do timestamp no momento da solicitação para evitar inconsistências:
+
+```go
+requestTimestamp := time.Now()
+payment.RequestedAt = requestTimestamp
+```
+
+### 8. PostgreSQL Otimizado
+
+Configurações de performance para o banco de dados:
+
 ```sql
 shared_buffers=64MB
 effective_cache_size=256MB
@@ -93,47 +131,53 @@ effective_io_concurrency=200
 checkpoint_completion_target=0.9
 ```
 
-## **🔧 Quick Start**
+## Quick Start
 
-### **Pré-requisitos**
+### Pré-requisitos
+
 - Docker Desktop
 - k6 (para testes de performance)
 
-### **1. Clone e Setup**
+### 1. Clone e Setup
+
 ```bash
 git clone <repository>
 cd rinha-go-2025
 ```
 
-### **2. Build e Deploy**
+### 2. Build e Deploy
+
 ```bash
 cd build
 docker-compose build --no-cache
 docker-compose up -d
 ```
 
-### **3. Verificar Status**
+### 3. Verificar Status
+
 ```bash
 docker-compose ps
 ```
 
-### **4. Executar Testes**
+### 4. Executar Testes
+
 ```bash
 cd ../rinha-test
 k6 run rinha.js
 ```
 
-## **📁 Estrutura do Projeto**
+## Estrutura do Projeto
 
 ```
 rinha-go-2025/
 ├── build/
 │   ├── docker-compose.yml      # Multi-container setup
 │   ├── Dockerfile              # Multi-stage build
-│   ├── nginx.conf              # Load balancer config
+│   ├── haproxy.cfg             # HAProxy load balancer config
 │   └── entrypoint.sh           # Startup script
 ├── cmd/
-│   └── api/main.go             # Entry point com Unix Sockets
+│   ├── api/main.go             # API entry point
+│   └── worker/main.go          # Worker entry point
 ├── internal/
 │   ├── database/
 │   │   ├── connection.go       # Connection pooling
@@ -146,118 +190,125 @@ rinha-go-2025/
 │   ├── processor/
 │   │   └── processor.go        # Payment processor + connection pooling
 │   └── worker/
-│       └── worker.go           # Integrated worker
+│       └── worker.go           # Worker pool
 ├── rinha-test/
 │   ├── rinha.js                # k6 test script
 │   └── partial-results.json    # Test results
 └── README.md
 ```
 
-## **⚙️ Configurações de Performance**
+## Configurações de Performance
 
-### **Docker Compose**
+### Docker Compose
+
 ```yaml
 services:
   api-1:
     build: .
     environment:
       - API_PORT=8080
-      - SOCKET_NAME=api_1.sock
-      - DEFAULT_PROCESSOR_URL=http://host.docker.internal:8001
-      - FALLBACK_PROCESSOR_URL=http://host.docker.internal:8002
-    volumes:
-      - /var/run:/var/run  # Unix Sockets
-    user: "0:0"            # Permissions
+      - DEFAULT_PROCESSOR_URL=http://payment-processor-default:8080
+      - FALLBACK_PROCESSOR_URL=http://payment-processor-fallback:8080
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: "70MB"
+
+  worker:
+    build: .
+    args:
+      TARGET: worker
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: "80MB"
+
+  haproxy:
+    image: haproxy:2.8-alpine
     ports:
-      - "9999:8080"        # k6 compatibility
+      - "9999:9999"
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
 ```
 
-### **Nginx Config**
-```nginx
-upstream api {
-    server unix:/var/run/api_1.sock;
-    server unix:/var/run/api_2.sock;
-    keepalive 64;
-}
+### HAProxy Config
+
+```haproxy
+global
+    maxconn 20000
+    nbthread 2
+    tune.bufsize 32768
+
+backend api_backend
+    mode http
+    balance leastconn
+    option httpchk GET /healthcheck
+    http-check expect status 204
+    server api-1 api-1:8080 check
+    server api-2 api-2:8080 check
 ```
 
-## **🎯 Fallback Strategy**
+## Estratégia de Fallback
 
-### **Payment Processors**
-1. **Default**: Processador principal (300ms timeout)
-2. **Fallback**: Processador secundário (3s timeout)
+### Processadores de Pagamento
 
-### **Retry Strategy**
-- **Max Retries**: 2 por processor
-- **Backoff**: Exponencial (10ms, 20ms)
-- **Health Check**: A cada 120s
-- **Circuit Breaker**: Removido para performance
+1. **Default**: Processador principal com timeout de 300ms
+2. **Fallback**: Processador secundário com timeout de 3s
 
-## **📊 Endpoints**
+### Estratégia de Retry
 
-### **API**
+- Máximo de 2 tentativas por processador
+- Backoff exponencial (10ms, 20ms)
+- Health check a cada 120s
+- Circuit breaker removido para otimizar performance
+
+## Endpoints
+
+### API
+
 - `POST /payments` - Criar pagamento
 - `GET /payments-summary?from=X&to=Y` - Resumo de pagamentos
-- `GET /healthcheck` - Health check
+- `GET /healthcheck` - Health check (status 204)
 - `POST /purge-payments` - Limpar pagamentos (teste)
 
-### **Payment Processors**
+### HAProxy
+
+- `GET /healthcheck` - Health check do load balancer
+- `GET http://localhost:9797` - Health check interno
+
+### Processadores de Pagamento
+
 - `POST /payments` - Processar pagamento
 - `GET /payments/service-health` - Health check
 
-## **🔍 Monitoramento**
+## Monitoramento
 
-### **Logs em Tempo Real**
+### Logs em Tempo Real
+
 ```bash
 docker-compose logs -f api-1
 docker-compose logs -f api-2
+docker-compose logs -f worker
+docker-compose logs -f haproxy
 ```
 
-### **Health Checks**
+### Health Checks
+
 ```bash
-curl http://localhost/healthcheck
-curl http://localhost:8001/payments/service-health
-curl http://localhost:8002/payments/service-health
+curl http://localhost:9999/healthcheck
+curl http://localhost:8080/healthcheck
+curl http://localhost:8081/healthcheck
 ```
 
-### **Database Status**
+### Status do Banco de Dados
+
 ```bash
 docker exec -it rinha-postgres psql -U postgres -d rinha -c "SELECT COUNT(*) FROM payments;"
 ```
 
-## **🚀 Principais Conquistas**
-
-### **Performance**
-- **P99**: 38.13ms (89.8% redução)
-- **Throughput**: 15.194 req/s (+8.2%)
-- **Inconsistências**: R$ 1.930 (99.2% redução)
-
-### **Arquitetura**
-- **Worker Integrado**: Eliminou overhead de comunicação
-- **Connection Pooling**: Reutilização de conexões HTTP
-- **Retry Otimizado**: Backoff exponencial inteligente
-- **Batch Operations**: Reduziu I/O do banco
-
-### **Confiabilidade**
-- **Fallback Funcional**: Processador secundário ativo
-- **Timestamp Correto**: Eliminou inconsistências
-- **Health Checks**: Monitoramento contínuo
-
-## **📈 Análise de Resultados**
-
-### **Antes das Otimizações**
-- P99: 375.75ms
-- Inconsistências: R$ 232.193
-- Lag: 2.657
-- Throughput: 14.042 req/s
-
-### **Após Otimizações**
-- P99: 38.13ms ⬇️
-- Inconsistências: R$ 1.930 ⬇️
-- Lag: 2.621 ⬇️
-- Throughput: 15.194 req/s ⬆️
-
-## **🤝 Contribuição**
+## Contribuição
 
 1. Fork o projeto
 2. Crie uma branch para sua feature
@@ -265,10 +316,10 @@ docker exec -it rinha-postgres psql -U postgres -d rinha -c "SELECT COUNT(*) FRO
 4. Push para a branch
 5. Abra um Pull Request
 
-## **📄 Licença**
+## Licença
 
 Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
 
 ---
 
-**🏆 Desenvolvido para a Rinha de Backend 2025 - Resultados Excepcionais Alcançados!**
+Desenvolvido para a Rinha de Backend 2025 com arquitetura otimizada para alta performance e confiabilidade.

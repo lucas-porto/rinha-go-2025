@@ -10,8 +10,9 @@ RUN go mod download
 
 COPY . .
 
-# Build apenas da API (worker integrado)
-RUN CGO_ENABLED=0 GOOS=linux GOGC=off GOMEMLIMIT=50MiB go build -ldflags="-w -s" -a -installsuffix cgo -o api ./cmd/api
+# Build da API ou Worker baseado no TARGET
+ARG TARGET=api
+RUN CGO_ENABLED=0 GOOS=linux GOGC=off GOMEMLIMIT=50MiB go build -ldflags="-w -s" -a -installsuffix cgo -o $TARGET ./cmd/$TARGET
 
 FROM alpine:latest
 
@@ -22,7 +23,7 @@ RUN addgroup -g 1001 -S appgroup && \
 
 WORKDIR /app
 
-COPY --from=builder /app/api .
+COPY --from=builder /app/$TARGET ./$TARGET
 
 COPY build/entrypoint.sh .
 

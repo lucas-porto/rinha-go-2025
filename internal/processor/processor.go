@@ -79,7 +79,7 @@ func GetProcessor() *Processor {
 	return processor
 }
 
-func (p *Processor) ProcessPayment(payment models.Payment) error {
+func (p *Processor) ProcessPayment(payment models.Payment) (string, error) {
 	start := time.Now()
 
 	maxRetries := 2
@@ -88,7 +88,7 @@ func (p *Processor) ProcessPayment(payment models.Payment) error {
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if err := p.tryProcessorWithClient(payment, p.paymentProcessor.DefaultProcessor, "default", p.defaultClient); err == nil {
 			p.updateProcessorStatus("default", false, int(time.Since(start).Milliseconds()))
-			return nil
+			return "default", nil
 		}
 
 		if attempt < maxRetries {
@@ -100,7 +100,7 @@ func (p *Processor) ProcessPayment(payment models.Payment) error {
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if err := p.tryProcessorWithClient(payment, p.paymentProcessor.FallbackProcessor, "fallback", p.fallbackClient); err == nil {
 			p.updateProcessorStatus("fallback", false, int(time.Since(start).Milliseconds()))
-			return nil
+			return "fallback", nil
 		}
 
 		if attempt < maxRetries {
@@ -109,7 +109,7 @@ func (p *Processor) ProcessPayment(payment models.Payment) error {
 		}
 	}
 
-	return fmt.Errorf("todos os payment processors falharam temporariamente")
+	return "", fmt.Errorf("todos os payment processors falharam temporariamente")
 }
 
 func (p *Processor) tryProcessorWithClient(payment models.Payment, proc *models.ProcessorStatus, handler string, client *fasthttp.Client) error {

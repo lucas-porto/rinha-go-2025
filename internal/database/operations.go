@@ -12,7 +12,7 @@ var (
 	batchMutex         sync.Mutex
 	batchQueueDefault  []models.Payment
 	batchQueueFallback []models.Payment
-	batchSize          = 10
+	batchSize          = 5
 	lastFlush          = time.Now()
 )
 
@@ -28,7 +28,7 @@ func SavePayment(payment models.Payment, handler string) error {
 
 	// Flush se atingiu o tamanho do batch ou passou muito tempo
 	totalBatchSize := len(batchQueueDefault) + len(batchQueueFallback)
-	if totalBatchSize >= batchSize || time.Since(lastFlush) > 10*time.Millisecond {
+	if totalBatchSize >= batchSize || time.Since(lastFlush) > 5*time.Millisecond {
 		return flushAllBatches()
 	}
 
