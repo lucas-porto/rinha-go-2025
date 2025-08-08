@@ -1,6 +1,6 @@
 # Rinha de Backend 2025 - Go
 
-Sistema de pagamentos de alta performance para a Rinha de Backend 2025, implementado em Go com arquitetura otimizada para velocidade e confiabilidade.
+Sistema de pagamentos para a Rinha de Backend 2025, implementado em Go.
 
 ## Arquitetura
 
@@ -58,7 +58,7 @@ worker:
         memory: "80MB"
 ```
 
-### 3. Connection Pooling Otimizado
+### 3. Connection Pooling
 
 Configuração de clientes HTTP com pools de conexão:
 
@@ -93,7 +93,7 @@ delay := baseDelay * time.Duration(1<<attempt)
 time.Sleep(delay)
 ```
 
-### 5. Worker Pool Otimizado
+### 5. Worker Pool
 
 - Pool de 1000 goroutines para processamento paralelo
 - Buffer de 200.000 items na fila
@@ -136,7 +136,7 @@ checkpoint_completion_target=0.9
 ### Pré-requisitos
 
 - Docker Desktop
-- k6 (para testes de performance)
+- k6 (para testes de performance) - Vide rinha 
 
 ### 1. Clone e Setup
 
@@ -159,41 +159,31 @@ docker-compose up -d
 docker-compose ps
 ```
 
-### 4. Executar Testes
-
-```bash
-cd ../rinha-test
-k6 run rinha.js
-```
-
 ## Estrutura do Projeto
 
 ```
 rinha-go-2025/
 ├── build/
-│   ├── docker-compose.yml      # Multi-container setup
-│   ├── Dockerfile              # Multi-stage build
-│   ├── haproxy.cfg             # HAProxy load balancer config
-│   └── entrypoint.sh           # Startup script
+│   ├── docker-compose.yml      
+│   ├── Dockerfile              
+│   ├── haproxy.cfg             
+│   └── entrypoint.sh           
 ├── cmd/
-│   ├── api/main.go             # API entry point
-│   └── worker/main.go          # Worker entry point
+│   ├── api/main.go             
+│   └── worker/main.go          
 ├── internal/
 │   ├── database/
-│   │   ├── connection.go       # Connection pooling
-│   │   ├── operations.go       # Batch operations
-│   │   └── schema.sql          # Database schema
+│   │   ├── connection.go       
+│   │   ├── operations.go       
+│   │   └── schema.sql          
 │   ├── handlers/
-│   │   └── api_handlers.go     # HTTP handlers
+│   │   └── api_handlers.go     
 │   ├── models/
-│   │   └── payment.go          # Data models
+│   │   └── payment.go          
 │   ├── processor/
-│   │   └── processor.go        # Payment processor + connection pooling
+│   │   └── processor.go        
 │   └── worker/
-│       └── worker.go           # Worker pool
-├── rinha-test/
-│   ├── rinha.js                # k6 test script
-│   └── partial-results.json    # Test results
+│       └── worker.go           
 └── README.md
 ```
 
@@ -315,11 +305,3 @@ docker exec -it rinha-postgres psql -U postgres -d rinha -c "SELECT COUNT(*) FRO
 3. Commit suas mudanças
 4. Push para a branch
 5. Abra um Pull Request
-
-## Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
-
----
-
-Desenvolvido para a Rinha de Backend 2025 com arquitetura otimizada para alta performance e confiabilidade.
