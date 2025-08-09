@@ -97,6 +97,8 @@ services:
     networks:
       - rinha-network
 
+
+
   api-1:
     <<: *api-config
     container_name: rinha-api-1
@@ -105,7 +107,6 @@ services:
     environment:
       <<: *common-environment
       SOCKET_NAME: api_1.sock
-
 
   api-2:
     <<: *api-config

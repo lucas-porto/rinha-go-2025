@@ -11,7 +11,7 @@ func main() {
 	debug.SetGCPercent(-1)
 	debug.SetMemoryLimit(80 * 1024 * 1024) // 80MB limite
 
-	//fmt.Println("Iniciando worker...")
+	fmt.Println("Iniciando worker...")
 
 	w := worker.New()
 
@@ -27,7 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	//fmt.Println("Worker iniciado com sucesso!")
+	fmt.Println("Worker iniciado com sucesso!")
 
 	// Manter worker rodando
 	select {}

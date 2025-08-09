@@ -44,9 +44,9 @@ x-postgres-config: &postgres-config
         cpus: "0.1"
         memory: "50MB"
   healthcheck:
-    test: ["CMD-SHELL", "pg_isready -U postgres -d rinha"]
+    test: ["CMD", "pg_isready", "-U", "postgres", "-d", "rinha"]
     interval: 5s
-    timeout: 5s
+    timeout: 3s
     retries: 5
 
 x-common-environment: &common-environment
@@ -56,7 +56,7 @@ x-common-environment: &common-environment
   PROCESSOR_FALLBACK_URL: http://payment-processor-fallback:8080
 
 x-api-config: &api-config
-  image: lucasportos/rinha-go-2025:latest
+  image: lucasportos/rinha-go-2025:api
   depends_on:
     postgres:
       condition: service_healthy
@@ -75,13 +75,10 @@ x-api-config: &api-config
         memory: "35MB"
   restart: unless-stopped
   healthcheck:
-    test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthcheck"]
-    interval: 10s
-    timeout: 5s
-    retries: 3
-  volumes:
-    - /var/run:/var/run
-  user: "0:0"
+    test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/healthcheck"]
+    interval: 5s
+    timeout: 3s
+    retries: 5
 
 services:
   postgres:
@@ -99,7 +96,6 @@ services:
       - "8080:8080"
     environment:
       <<: *common-environment
-      SOCKET_NAME: api_1.sock
 
   api-2:
     <<: *api-config
@@ -108,10 +104,9 @@ services:
       - "8081:8080"
     environment:
       <<: *common-environment
-      SOCKET_NAME: api_2.sock
 
   worker:
-    image: lucasportos/rinha-go-2025:latest
+    image: lucasportos/rinha-go-2025:worker
     container_name: rinha-worker
     environment:
       <<: *common-environment
@@ -154,10 +149,10 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9797"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9797"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     networks:
       - rinha-network
 
